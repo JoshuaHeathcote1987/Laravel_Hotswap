@@ -6,12 +6,12 @@ Hotswap is a Laravel package that enables modular development by generating self
 
 Install the package via Packagist
 ```
-composer require joshlogic/hotswap
+composer require joshlogic/hotswap:dev-main
 ```
 
 Publish the core scaffolding:
 ```
-php artisan vendor:publish --tag=hotswap-core
+php artisan hotswap:scaffold
 ```
 
 ## ⚡ Usage
