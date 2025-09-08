@@ -8,7 +8,7 @@ use Symfony\Component\Process\Process;
 
 class GitPullModuleCommand extends Command
 {
-    protected $signature = 'hotswap:gitpull {name}';
+    protected $signature = 'hotswap:push {name}';
     protected $description = 'Pull a module from its Git repository and update root files';
 
     public function handle()
