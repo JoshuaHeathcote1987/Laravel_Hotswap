@@ -13,32 +13,46 @@ class PlayModuleCommand extends Command
 
     public function handle()
     {
-        $name = Str::studly($this->argument('name')); // e.g., Ecommerce
-        $file = base_path('bootstrap/providers.php');
+        $studly = Str::studly($this->argument('name')); // e.g., Ecommerce
+        $file   = base_path('bootstrap/providers.php');
 
         if (!File::exists($file)) {
-            $this->error("bootstrap/providers.php not found!");
+            $this->error('bootstrap/providers.php not found!');
             return 1;
         }
 
         $contents = File::get($file);
-        $commentedLine = "//    {$name}\\App\\Providers\\AppServiceProvider::class,";
 
-        // If already active, nothing to do
-        if (strpos($contents, "    {$name}\\App\\Providers\\AppServiceProvider::class,") !== false) {
-            $this->info("✅ Module '{$name}' is already active.");
+        // 1) If it's already active, do nothing
+        $activePattern = '/^[ \t]*' .
+            preg_quote($studly . '\\App\\Providers\\AppServiceProvider::class,', '/') .
+            '[ \t]*$/m';
+
+        if (preg_match($activePattern, $contents)) {
+            $this->info("✅ Module '{$studly}' is already active.");
             return 0;
         }
 
-        // Replace the commented line with active version
-        if (strpos($contents, $commentedLine) !== false) {
-            $contents = str_replace($commentedLine, "    {$name}\\App\\Providers\\AppServiceProvider::class,", $contents);
-            File::put($file, $contents);
-            $this->info("✅ Module '{$name}' has been resumed (provider uncommented).");
+        // 2) Uncomment any commented variant (handles spaces/tabs around // and line)
+        $commentedPattern = '/^[ \t]*\/\/[ \t]*(' .
+            preg_quote($studly . '\\App\\Providers\\AppServiceProvider::class,', '/') .
+            ')[ \t]*$/m';
+
+        $newContents = preg_replace(
+            $commentedPattern,
+            '    $1',
+            $contents,
+            1, // only the first matching line
+            $replacements
+        );
+
+        if ($replacements > 0) {
+            File::put($file, $newContents);
+            $this->info("✅ Module '{$studly}' has been resumed (provider uncommented).");
             return 0;
         }
 
-        $this->warn("⚠️ Commented provider for module '{$name}' not found in bootstrap/providers.php.");
+        $this->warn("⚠️ Could not find a commented provider for '{$studly}' in bootstrap/providers.php.");
         return 1;
     }
 }

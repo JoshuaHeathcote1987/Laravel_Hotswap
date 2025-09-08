@@ -22,19 +22,21 @@ class PauseModuleCommand extends Command
         }
 
         $contents = File::get($file);
-        $providerLine = "    {$name}\\App\\Providers\\AppServiceProvider::class,";
+
+        $activePattern   = "/^\s*{$name}\\\\App\\\\Providers\\\\AppServiceProvider::class,/m";
+        $commentedPattern = "/^\s*\/\/\s*{$name}\\\\App\\\\Providers\\\\AppServiceProvider::class,/m";
 
         // If already commented, nothing to do
-        if (strpos($contents, "//{$providerLine}") !== false) {
-            $this->info("✅ Module '{$name}' is already paused.");
+        if (preg_match($commentedPattern, $contents)) {
+            $this->info("⏸ Module '{$name}' is already paused.");
             return 0;
         }
 
-        // Replace the line with commented version
-        if (strpos($contents, $providerLine) !== false) {
-            $contents = str_replace($providerLine, "//{$providerLine}", $contents);
+        // Comment out the active line
+        if (preg_match($activePattern, $contents)) {
+            $contents = preg_replace($activePattern, "    //{$name}\\App\\Providers\\AppServiceProvider::class,", $contents);
             File::put($file, $contents);
-            $this->info("✅ Module '{$name}' has been paused (provider commented out).");
+            $this->info("⏸ Module '{$name}' has been paused (provider commented).");
             return 0;
         }
 

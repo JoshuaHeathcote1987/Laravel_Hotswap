@@ -8,8 +8,6 @@ use JoshLogic\Hotswap\Console\{
     RemoveModuleCommand,
     PauseModuleCommand,
     PlayModuleCommand,
-    GitPushModuleCommand,
-    GitPullModuleCommand,
     ScaffoldHotswapCommand
 };
 
@@ -22,8 +20,6 @@ class HotswapServiceProvider extends ServiceProvider
             RemoveModuleCommand::class,
             PauseModuleCommand::class,
             PlayModuleCommand::class,
-            GitPushModuleCommand::class,
-            GitPullModuleCommand::class,
             ScaffoldHotswapCommand::class
         ]);
     }
