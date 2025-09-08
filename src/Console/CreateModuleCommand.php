@@ -11,7 +11,7 @@ class CreateModuleCommand extends Command
     protected $signature = 'hotswap:create {name}';
     protected $description = 'Create a new module inside packages/ and register it with Laravel';
 
-    protected function handle()
+    public function handle()
     {
         $name   = $this->argument('name');
         $studly = Str::studly($name);   // Ecommerce
