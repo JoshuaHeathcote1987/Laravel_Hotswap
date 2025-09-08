@@ -11,7 +11,7 @@ class CreateModuleCommand extends Command
     protected $signature = 'hotswap:create {name}';
     protected $description = 'Create a new module inside packages/ and register it with Laravel';
 
-    public function handle()
+    protected function handle()
     {
         $name   = $this->argument('name');
         $studly = Str::studly($name);   // Ecommerce
@@ -46,13 +46,18 @@ class CreateModuleCommand extends Command
         $this->renameFiles($modulePath, $studly, $lower);
         $this->renameDirectoriesDeepestFirst($modulePath, $studly, $lower);
 
+        // 🔹 If HOTSWAP_ENV=vue, override index.tsx with Vue file
+        if (env('HOTSWAP_ENV') === 'vue') {
+            $this->swapIndexForVue($lower, $modulePath);
+        }
+
         // Register module in Laravel config files
         $this->updateProvidersPhp($studly);
         $this->updateComposerJson($studly, $lower);
         $this->updateViteConfig($lower);
 
         $this->info("✅ Module '{$studly}' created at {$modulePath}");
-        $this->info("ℹ️ Run `php artisan hotswap:scaffold` to refresh app.tsx");
+        $this->info("ℹ️ Run `php artisan hotswap:scaffold` to refresh app entrypoint");
         return 0;
     }
 
@@ -214,5 +219,32 @@ class CreateModuleCommand extends Command
         }
 
         File::put($file, $contents);
+    }
+
+    protected function swapIndexForVue(string $lower, string $modulePath): void
+    {
+        $vueSource = base_path('vendor/joshlogic/hotswap/src/vue_files/index.vue');
+        $targetDir = "{$modulePath}/src/resources/js/pages/{$lower}";
+
+        if (!File::exists($vueSource)) {
+            $this->error("❌ Vue stub file not found at: {$vueSource}");
+            return;
+        }
+
+        // Ensure target dir exists
+        if (!File::exists($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        $targetFile = $targetDir . '/index.vue';
+        File::copy($vueSource, $targetFile);
+
+        // Delete the old index.tsx if it exists
+        $oldFile = $targetDir . '/index.tsx';
+        if (File::exists($oldFile)) {
+            File::delete($oldFile);
+        }
+
+        $this->line("🔹 Vue mode enabled — swapped index.tsx with index.vue");
     }
 }
