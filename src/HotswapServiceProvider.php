@@ -10,9 +10,6 @@ use JoshLogic\Hotswap\Console\{
     PlayModuleCommand,
     GitPushModuleCommand,
     GitPullModuleCommand,
-    LocalPushModuleCommand,
-    LocalPullModuleCommand,
-    MakeLocalRepoCommand,
     ScaffoldHotswapCommand
 };
 
@@ -27,9 +24,6 @@ class HotswapServiceProvider extends ServiceProvider
             PlayModuleCommand::class,
             GitPushModuleCommand::class,
             GitPullModuleCommand::class,
-            LocalPushModuleCommand::class,
-            LocalPullModuleCommand::class,
-            MakeLocalRepoCommand::class,
             ScaffoldHotswapCommand::class
         ]);
     }
