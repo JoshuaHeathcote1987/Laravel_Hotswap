@@ -193,7 +193,7 @@ VUE;
             $pattern = '/@vite\s*\(\s*\[.*?\]\s*\)/s';
             if (preg_match($pattern, $contents)) {
                 // React uses app.tsx, Vue uses app.js
-                $replacement = "@vite(['resources/js/app." . (File::exists(base_path('resources/js/app.tsx')) ? 'tsx' : 'js') . "'])";
+                $replacement = "@vite(['resources/js/app." . (File::exists(base_path('resources/js/app.tsx')) ? 'tsx' : 'ts') . "'])";
                 $contents = preg_replace($pattern, $replacement, $contents);
                 File::put($file->getRealPath(), $contents);
                 $this->line("🔹 Updated @vite call in {$file->getFilename()}");
