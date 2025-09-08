@@ -57,7 +57,6 @@ class CreateModuleCommand extends Command
         $this->updateViteConfig($lower);
 
         $this->info("✅ Module '{$studly}' created at {$modulePath}");
-        $this->info("ℹ️ Run `php artisan hotswap:scaffold` to refresh app entrypoint");
         return 0;
     }
 
