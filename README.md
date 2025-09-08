@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="Hotswap Logo" width="512" height="512">
+</p>
+
 # Hotswap
 
 Hotswap is a Laravel package that enables modular development by generating self-contained packages with their own routes, migrations, service providers, and frontend scaffolding. It’s designed to make building reusable Laravel + Inertia + Vite modules simple and fast.
