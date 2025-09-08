@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Hotswap Logo" width="512" height="512">
+  <img src="logo.png" alt="Hotswap Logo" width="256" height="256">
 </p>
 
 # Hotswap
