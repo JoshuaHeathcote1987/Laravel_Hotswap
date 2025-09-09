@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../databases/migrations');
 
         $this->publishes([
-            __DIR__ . '/../../storage/app/public' => public_path('placeholder/images'),
-        ], 'public');   
+            __DIR__ . '/../../storage/app/public' => public_path('vendor/placeholder/images'),
+        ], 'public');
     }
 }
