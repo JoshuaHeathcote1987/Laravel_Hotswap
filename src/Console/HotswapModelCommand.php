@@ -8,58 +8,61 @@ use Illuminate\Support\Str;
 
 class HotswapModelCommand extends Command
 {
-    protected $signature = 'hotswap:model {package} {name} {--mcr}';
-    protected $description = 'Create a model (optionally with migration, controller, and resource) inside a package';
+    protected $signature = 'hotswap:model {package} {name} {--m|migration} {--c|controller} {--r|resource}';
+    protected $description = 'Create a model (and optionally a migration + controller) inside a package';
 
     public function handle()
     {
-        $package = Str::lower($this->argument('package')); // ecommerce
-        $name    = Str::studly($this->argument('name'));   // Product
-        $withMcr = $this->option('mcr');
+        $package = Str::lower($this->argument('package'));   // ecommerce
+        $studly  = Str::studly($package);                   // Ecommerce
+        $name    = Str::studly($this->argument('name'));    // Product
 
         $basePath = base_path("packages/{$package}/src");
-        $modelPath = "{$basePath}/App/Models";
 
-        if (!is_dir($modelPath)) {
-            mkdir($modelPath, 0755, true);
-        }
-
-        // 🟢 Always create the model
+        // 🔹 Create Model
+        $modelPath = "{$basePath}/app/Models/{$name}.php";
         Artisan::call('make:model', [
-            'name' => "Packages\\{$package}\\Src\\App\\Models\\{$name}",
+            'name' => "{$studly}\\App\\Models\\{$name}",
+            '--quiet' => true,
         ]);
-        $this->info(Artisan::output());
-        $this->info("✅ Model {$name} created in {$modelPath}");
+        $this->moveFile("app/Models/{$name}.php", $modelPath);
+        $this->info("✅ Model created at {$modelPath}");
 
-        // 🔹 If -mcr is set, also create migration + controller + resource
-        if ($withMcr) {
-            // Migration
-            $migrationName = "create_" . Str::snake(Str::pluralStudly($name)) . "_table";
+        // 🔹 Create Migration
+        if ($this->option('migration')) {
             $migrationPath = "{$basePath}/databases/migrations";
+            if (!is_dir($migrationPath)) mkdir($migrationPath, 0755, true);
 
-            if (!is_dir($migrationPath)) {
-                mkdir($migrationPath, 0755, true);
-            }
+            $migrationName = "create_" . Str::snake(Str::pluralStudly($name)) . "_table";
 
             Artisan::call('make:migration', [
                 'name' => $migrationName,
                 '--path' => "packages/{$package}/src/databases/migrations",
             ]);
-            $this->info(Artisan::output());
-            $this->info("✅ Migration {$migrationName} created in {$migrationPath}");
+            $this->info("✅ Migration created at {$migrationPath}");
+        }
 
-            // Controller
-            $controllerPath = "{$basePath}/App/Http/Controllers";
-            if (!is_dir($controllerPath)) {
-                mkdir($controllerPath, 0755, true);
-            }
+        // 🔹 Create Controller
+        if ($this->option('controller')) {
+            $controllerPath = "{$basePath}/app/Http/Controllers/{$name}Controller.php";
+            $controllerName = "{$studly}\\App\\Http\\Controllers\\{$name}Controller";
 
             Artisan::call('make:controller', [
-                'name' => "Packages\\{$package}\\Src\\App\\Http\\Controllers\\{$name}Controller",
-                '--resource' => true,
+                'name' => $controllerName,
+                '--model' => "{$studly}\\App\\Models\\{$name}",
+                '--resource' => $this->option('resource'),
             ]);
-            $this->info(Artisan::output());
-            $this->info("✅ Controller {$name}Controller created in {$controllerPath}");
+            $this->moveFile("app/Http/Controllers/{$name}Controller.php", $controllerPath);
+            $this->info("✅ Controller created at {$controllerPath}");
+        }
+    }
+
+    protected function moveFile(string $defaultPath, string $targetPath)
+    {
+        $defaultFull = base_path("{$defaultPath}");
+        if (file_exists($defaultFull)) {
+            if (!is_dir(dirname($targetPath))) mkdir(dirname($targetPath), 0755, true);
+            rename($defaultFull, $targetPath);
         }
     }
 }
