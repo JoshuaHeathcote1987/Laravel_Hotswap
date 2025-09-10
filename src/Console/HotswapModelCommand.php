@@ -13,20 +13,22 @@ class HotswapModelCommand extends Command
 
     public function handle()
     {
-        $package = Str::lower($this->argument('package'));   // ecommerce
-        $studly  = Str::studly($package);                   // Ecommerce
-        $name    = Str::studly($this->argument('name'));    // Product
+        $package = Str::lower($this->argument('package'));       // ecommerce
+        $studlyPackage = Str::studly($package);                 // Ecommerce
+        $name    = Str::studly($this->argument('name'));        // Product
 
         $basePath = base_path("packages/{$package}/src");
 
         // 🔹 Create Model
-        $modelPath = "{$basePath}/app/Models/{$name}.php";
+        $modelNamespace = "{$studlyPackage}\\App\\Models\\{$name}";
         Artisan::call('make:model', [
-            'name' => "{$studly}\\App\\Models\\{$name}",
+            'name' => $modelNamespace,
             '--quiet' => true,
         ]);
-        $this->moveFile("app/Models/{$name}.php", $modelPath);
-        $this->info("✅ Model created at {$modelPath}");
+
+        $modelTarget = "{$basePath}/app/Models/{$name}.php";
+        $this->moveFile("app/Models/{$name}.php", $modelTarget);
+        $this->info("✅ Model created at {$modelTarget}");
 
         // 🔹 Create Migration
         if ($this->option('migration')) {
@@ -44,22 +46,22 @@ class HotswapModelCommand extends Command
 
         // 🔹 Create Controller
         if ($this->option('controller')) {
-            $controllerPath = "{$basePath}/app/Http/Controllers/{$name}Controller.php";
-            $controllerName = "{$studly}\\App\\Http\\Controllers\\{$name}Controller";
-
+            $controllerNamespace = "{$studlyPackage}\\App\\Http\\Controllers\\{$name}Controller";
             Artisan::call('make:controller', [
-                'name' => $controllerName,
-                '--model' => "{$studly}\\App\\Models\\{$name}",
+                'name' => $controllerNamespace,
+                '--model' => $modelNamespace,
                 '--resource' => $this->option('resource'),
             ]);
-            $this->moveFile("app/Http/Controllers/{$name}Controller.php", $controllerPath);
-            $this->info("✅ Controller created at {$controllerPath}");
+
+            $controllerTarget = "{$basePath}/app/Http/Controllers/{$name}Controller.php";
+            $this->moveFile("app/Http/Controllers/{$name}Controller.php", $controllerTarget);
+            $this->info("✅ Controller created at {$controllerTarget}");
         }
     }
 
     protected function moveFile(string $defaultPath, string $targetPath)
     {
-        $defaultFull = base_path("{$defaultPath}");
+        $defaultFull = base_path($defaultPath);
         if (file_exists($defaultFull)) {
             if (!is_dir(dirname($targetPath))) mkdir(dirname($targetPath), 0755, true);
             rename($defaultFull, $targetPath);

@@ -3,40 +3,96 @@
 namespace JoshLogic\Hotswap\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
 
 class HotswapControllerCommand extends Command
 {
-    protected $signature = 'hotswap:controller {package} {name} {--r}';
+    protected $signature = 'hotswap:controller {package} {name} {--r|resource}';
     protected $description = 'Create a controller inside a package';
 
     public function handle()
     {
-        $package = Str::lower($this->argument('package'));   // ecommerce
+        $package = Str::lower($this->argument('package'));    // ecommerce
         $studlyPackage = Str::studly($package);              // Ecommerce
-        $name = Str::studly($this->argument('name')) . 'Controller';
+        $name = Str::studly($this->argument('name'));        // Product
 
-        $basePath = base_path("packages/{$package}/src/App/Http/Controllers");
-        $controllerPath = "{$basePath}/{$name}.php";
+        $basePath = base_path("packages/{$package}/src");
 
-        $params = [
-            'name' => "Packages\\{$studlyPackage}\\Src\\App\\Http\\Controllers\\{$name}",
-        ];
-        if ($this->option('r')) $params['--resource'] = true;
+        // Controller directory
+        $controllerDir = "{$basePath}/app/Http/Controllers";
+        if (!File::exists($controllerDir)) File::makeDirectory($controllerDir, 0755, true);
 
-        Artisan::call('make:controller', $params);
+        $controllerFile = "{$controllerDir}/{$name}Controller.php";
+        File::put($controllerFile, $this->getControllerStub($studlyPackage, $name, $this->option('resource')));
 
-        $this->info(Artisan::output());
+        $this->info("✅ Controller created at {$controllerFile}");
+    }
 
-        // Move file into package
-        $laravelControllerPath = app_path("Http/Controllers/{$name}.php");
-        if (file_exists($laravelControllerPath)) {
-            if (!is_dir($basePath)) {
-                mkdir($basePath, 0755, true);
-            }
-            rename($laravelControllerPath, $controllerPath);
-            $this->info("✅ Controller moved into {$controllerPath}");
-        }
+    protected function getControllerStub($package, $name, $resource)
+    {
+        $resourceLine = $resource ? "use {$package}\\App\\Models\\{$name};\n" : '';
+        $methods = $resource ? $this->getResourceMethods($name) : '';
+
+        return <<<PHP
+<?php
+
+namespace {$package}\App\Http\Controllers;
+
+use Illuminate\Http\Request;
+{$resourceLine}use App\Http\Controllers\Controller;
+
+class {$name}Controller extends Controller
+{
+{$methods}
+}
+PHP;
+    }
+
+    protected function getResourceMethods($name)
+    {
+        // Basic CRUD scaffold
+        return <<<PHP
+
+    public function index()
+    {
+        //
+    }
+
+    public function create()
+    {
+        //
+    }
+
+    public function store(Request \$request)
+    {
+        //
+    }
+
+    public function show({$name} \${$this->camel($name)})
+    {
+        //
+    }
+
+    public function edit({$name} \${$this->camel($name)})
+    {
+        //
+    }
+
+    public function update(Request \$request, {$name} \${$this->camel($name)})
+    {
+        //
+    }
+
+    public function destroy({$name} \${$this->camel($name)})
+    {
+        //
+    }
+PHP;
+    }
+
+    protected function camel($name)
+    {
+        return lcfirst($name);
     }
 }
