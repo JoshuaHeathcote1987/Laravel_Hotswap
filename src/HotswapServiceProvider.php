@@ -5,6 +5,9 @@ namespace JoshLogic\Hotswap;
 use Illuminate\Support\ServiceProvider;
 use JoshLogic\Hotswap\Console\{
     CreateModuleCommand,
+    HotswapControllerCommand,
+    HotswapMigrationCommand,
+    HotswapModelCommand,
     RemoveModuleCommand,
     PauseModuleCommand,
     PlayModuleCommand,
@@ -20,7 +23,10 @@ class HotswapServiceProvider extends ServiceProvider
             RemoveModuleCommand::class,
             PauseModuleCommand::class,
             PlayModuleCommand::class,
-            ScaffoldHotswapCommand::class
+            ScaffoldHotswapCommand::class,
+            HotswapModelCommand::class,
+            HotswapControllerCommand::class,
+            HotswapMigrationCommand::class
         ]);
     }
 
