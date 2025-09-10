@@ -14,7 +14,12 @@ class HotswapMigrationCommand extends Command
     public function handle()
     {
         $package = Str::lower($this->argument('package'));   // ecommerce
-        $name = $this->argument('name');                     // create_products_table
+        $name = Str::snake($this->argument('name'));         // product
+
+        // Ensure migration name follows Laravel convention
+        if (!Str::startsWith($name, 'create_') && !Str::endsWith($name, '_table')) {
+            $name = "create_{$name}_table";
+        }
 
         $migrationPath = base_path("packages/{$package}/src/databases/migrations");
 
