@@ -31,10 +31,15 @@ class RemoveModuleCommand extends Command
         $providersFile = base_path('bootstrap/providers.php');
         if (File::exists($providersFile)) {
             $contents = File::get($providersFile);
-            $pattern = "/.*{$studly}ServiceProvider::class,.*\n/";
+
+            // Match "Ecommerce\App\Providers\AppServiceProvider::class,"
+            $pattern = "/.*{$studly}\\\\App\\\\Providers\\\\AppServiceProvider::class,.*\n/";
+
             $newContents = preg_replace($pattern, '', $contents);
+
             File::put($providersFile, $newContents);
-            $this->info("✅ Removed {$studly}ServiceProvider from providers.php");
+
+            $this->info("✅ Removed {$studly}\\App\\Providers\\AppServiceProvider from providers.php");
         }
 
         // 3️⃣ Remove from composer.json autoload + extra providers
@@ -42,30 +47,37 @@ class RemoveModuleCommand extends Command
         if (File::exists($composerFile)) {
             $composer = json_decode(File::get($composerFile), true);
 
-            // Remove PSR-4 autoload namespace
-            if (isset($composer['autoload']['psr-4']["{$studly}\\"])) {
-                unset($composer['autoload']['psr-4']["{$studly}\\"]);
-                $this->info("✅ Removed PSR-4 autoload entry for {$studly}");
+            // Remove PSR-4 autoload namespace (Ecommerce\\App\\)
+            $autoloadKey = "{$studly}\\App\\";
+            if (isset($composer['autoload']['psr-4'][$autoloadKey])) {
+                unset($composer['autoload']['psr-4'][$autoloadKey]);
+                $this->info("✅ Removed PSR-4 autoload entry for {$autoloadKey}");
             }
 
             // Remove from extra.laravel.providers
             if (isset($composer['extra']['laravel']['providers'])) {
+                $providerClass = "Packages\\{$studly}\\Src\\App\\Providers\\AppServiceProvider";
                 $composer['extra']['laravel']['providers'] = array_values(array_filter(
                     $composer['extra']['laravel']['providers'],
-                    fn($p) => $p !== "{$studly}\\{$studly}ServiceProvider"
+                    fn($p) => $p !== $providerClass
                 ));
-                $this->info("✅ Removed {$studly}ServiceProvider from composer.json providers");
+                $this->info("✅ Removed {$providerClass} from composer.json providers");
             }
 
-            File::put($composerFile, json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            File::put(
+                $composerFile,
+                json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+            );
         }
 
         // 4️⃣ Remove from vite.config.ts
         $viteFile = base_path('vite.config.ts');
+
         if (File::exists($viteFile)) {
             $viteContents = File::get($viteFile);
+            // Remove entry like: 'packages/ecommerce/src/resources/js/app.tsx',
             $viteContents = preg_replace(
-                "/'packages\/{$lower}\/src\/resources\/js\/app.tsx',?\s*/",
+                "/'packages\/{$lower}\/src\/resources\/js\/app\.tsx',?\s*/",
                 '',
                 $viteContents
             );
