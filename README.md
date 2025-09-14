@@ -35,8 +35,61 @@ npm run build
 Run the development server:
 ```
 php artisan serve  
-npm run dev
 ```
+
+## 🔍 Models, Controllers and Migrations
+
+Easily generate models, controllers, and migrations within a specific module (e.g., ecommerce) using the following commands:
+
+Create a Model (with Migration & Controller)
+```
+php artisan hotswap:model ecommerce Product -mcr
+```
+
+Create a Controller
+```
+php artisan hotswap:controller ecommerce Product
+```
+
+Create a Model
+```
+php artisan hotswap:model ecommerce Product
+```
+
+Create a Migration
+```
+php artisan hotswap:migration ecommerce products
+```
+
+## 🤖 Other commands
+
+Manage your modules with the following commands:
+
+### Pause a Module
+Temporarily disable a module so it cannot be accessed by users (e.g., ecommerce):
+```
+php artisan hotswap:pause ecommerce
+```
+
+### Resume a Module
+Re-enable a previously paused module:
+```
+php artisan hotswap:play ecommerce
+```
+
+### Remove a Module
+Permanently delete a module:
+```
+php artisan hotswap:remove ecommerce
+```
+
+## 📷 Export images
+
+Export images from hotswap module to the root public folder:
+```
+php artisan vendor:publish --tag=public --force
+```
+
 ## 📂 What you get
 
 Modular routes
