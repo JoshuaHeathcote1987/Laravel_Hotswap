@@ -61,6 +61,11 @@ Create a Migration
 php artisan hotswap:migration ecommerce products
 ```
 
+⚠️ As a safety precaution run: 
+```
+composer dump-autoload
+```
+
 ## 🤖 Other commands
 
 Manage your modules with the following commands:
@@ -81,6 +86,11 @@ php artisan hotswap:play ecommerce
 Permanently delete a module:
 ```
 php artisan hotswap:remove ecommerce
+```
+
+⚠️ As a safety precaution run: 
+```
+composer dump-autoload
 ```
 
 ## 📷 Export images

@@ -85,6 +85,28 @@ class HotswapModelCommand extends Command
                 file_put_contents($targetControllerPath, $contents);
             }
 
+            // Fix namespace in the controller file
+            if (file_exists($targetControllerPath)) {
+                $contents = file_get_contents($targetControllerPath);
+                $contents = str_replace(
+                    "namespace App\\Http\\Controllers;",
+                    "namespace {$studlyPackage}\\App\\Http\\Controllers;",
+                    $contents
+                );
+
+                // Ensure base Controller is imported
+                if (!str_contains($contents, 'use App\\Http\\Controllers\\Controller;')) {
+                    $contents = preg_replace(
+                        '/namespace [^;]+;/',
+                        "namespace {$studlyPackage}\\App\\Http\\Controllers;\n\nuse App\\Http\\Controllers\\Controller;",
+                        $contents,
+                        1
+                    );
+                }
+
+                file_put_contents($targetControllerPath, $contents);
+            }
+
             $this->info("✅ Controller created at {$targetControllerPath}");
         }
     }
