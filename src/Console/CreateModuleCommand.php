@@ -41,6 +41,9 @@ class CreateModuleCommand extends Command
 
         File::copyDirectory($stubPath, $modulePath);
 
+        // Update seeder namespaces
+        $this->updateSeederNamespace($lower, $studly);
+
         // Replace placeholders and rename things
         $this->replaceInPhpFiles($modulePath, $studly, $lower);
         $this->renameFiles($modulePath, $studly, $lower);
@@ -55,6 +58,7 @@ class CreateModuleCommand extends Command
         $this->updateProvidersPhp($studly);
         $this->updateComposerJson($studly, $lower);
         $this->updateViteConfig($lower);
+        $this->addPackageSeederCall($studly, $lower);
 
         $this->info("✅ Module '{$studly}' created at {$modulePath}");
         return 0;
@@ -134,22 +138,33 @@ class CreateModuleCommand extends Command
         $file = base_path('composer.json');
         $json = json_decode(file_get_contents($file), true);
 
-        $autoloadKey = "{$studly}\\App\\";
-        $autoloadVal = "packages/{$lower}/src/App/";
-
-        if (!isset($json['autoload']['psr-4'][$autoloadKey])) {
-            $json['autoload']['psr-4'][$autoloadKey] = $autoloadVal;
-            $this->line("🔹 Added PSR-4 autoload for {$studly} to composer.json");
+        // 🔹 Add App namespace
+        $appNamespace = "{$studly}\\App\\";
+        $appPath = "packages/{$lower}/src/App/";
+        if (!isset($json['autoload']['psr-4'][$appNamespace])) {
+            $json['autoload']['psr-4'][$appNamespace] = $appPath;
+            $this->line("🔹 Added PSR-4 autoload for {$studly}\\App to composer.json");
         }
 
-        $providerClass = "Packages\\{$studly}\\Src\\App\\Providers\\AppServiceProvider";
+        // 🔹 Add Seeders namespace
+        $seedersNamespace = "{$studly}\\Seeders\\";
+        $seedersPath = "packages/{$lower}/src/databases/seeders/";
+        if (!isset($json['autoload']['psr-4'][$seedersNamespace])) {
+            $json['autoload']['psr-4'][$seedersNamespace] = $seedersPath;
+            $this->line("🔹 Added PSR-4 autoload for {$studly}\\Seeders to composer.json");
+        }
 
+        // 🔹 Add provider
+        $providerClass = "Packages\\{$studly}\\Src\\App\\Providers\\AppServiceProvider";
         if (!in_array($providerClass, $json['extra']['laravel']['providers'] ?? [])) {
             $json['extra']['laravel']['providers'][] = $providerClass;
             $this->line("🔹 Added provider {$providerClass} to composer.json");
         }
 
         file_put_contents($file, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        // 🔹 Regenerate Composer autoload
+        exec('composer dump-autoload');
     }
 
     protected function updateViteConfig(string $lower): void
@@ -245,5 +260,63 @@ class CreateModuleCommand extends Command
         }
 
         $this->line("🔹 Vue mode enabled — swapped index.tsx with index.vue");
+    }
+
+    protected function updateSeederNamespace(string $package, string $studlyPackage): void
+    {
+        $seederPath = base_path("packages/{$package}/src/databases/seeders");
+
+        if (!is_dir($seederPath)) {
+            return; // nothing to update
+        }
+
+        $files = glob($seederPath . '/*.php');
+
+        foreach ($files as $file) {
+            $contents = file_get_contents($file);
+
+            // Replace the namespace
+            $contents = preg_replace(
+                '/^namespace\s+Database\\\\Seeders\s*;/m',
+                "namespace {$studlyPackage}\\Seeders;",
+                $contents
+            );
+
+            file_put_contents($file, $contents);
+            $this->info("🔹 Updated namespace in " . basename($file));
+        }
+    }
+
+    protected function addPackageSeederCall(string $studly, string $lower): void
+    {
+        $seederFile = base_path('database/seeders/DatabaseSeeder.php');
+
+        if (!file_exists($seederFile)) {
+            $this->warn("Root DatabaseSeeder.php not found, skipping adding package seeder call.");
+            return;
+        }
+
+        $contents = file_get_contents($seederFile);
+
+        // The line to insert
+        $callLine = "        \$this->call(\\{$studly}\\Seeders\\DatabaseSeeder::class);";
+
+        // Check if it already exists to avoid duplicates
+        if (str_contains($contents, $callLine)) {
+            $this->info("✅ Seeder call for {$studly} already exists in DatabaseSeeder.php");
+            return;
+        }
+
+        // Insert before the last closing bracket of the run() method
+        $contents = preg_replace(
+            '/(\s*}\s*)$/m',
+            "    {$callLine}\n$1",
+            $contents,
+            1
+        );
+
+        file_put_contents($seederFile, $contents);
+
+        $this->info("✅ Added {$studly} package seeder call to DatabaseSeeder.php");
     }
 }

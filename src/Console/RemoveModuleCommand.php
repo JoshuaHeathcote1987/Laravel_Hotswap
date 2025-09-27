@@ -47,14 +47,21 @@ class RemoveModuleCommand extends Command
         if (File::exists($composerFile)) {
             $composer = json_decode(File::get($composerFile), true);
 
-            // Remove PSR-4 autoload namespace (Ecommerce\\App\\)
-            $autoloadKey = "{$studly}\\App\\";
-            if (isset($composer['autoload']['psr-4'][$autoloadKey])) {
-                unset($composer['autoload']['psr-4'][$autoloadKey]);
-                $this->info("✅ Removed PSR-4 autoload entry for {$autoloadKey}");
+            // Remove PSR-4 autoload namespace (App)
+            $appNamespace = "{$studly}\\App\\";
+            if (isset($composer['autoload']['psr-4'][$appNamespace])) {
+                unset($composer['autoload']['psr-4'][$appNamespace]);
+                $this->info("✅ Removed PSR-4 autoload entry for {$appNamespace}");
             }
 
-            // Remove from extra.laravel.providers
+            // Remove PSR-4 autoload namespace (Seeders)
+            $seedersNamespace = "{$studly}\\Seeders\\";
+            if (isset($composer['autoload']['psr-4'][$seedersNamespace])) {
+                unset($composer['autoload']['psr-4'][$seedersNamespace]);
+                $this->info("✅ Removed PSR-4 autoload entry for {$seedersNamespace}");
+            }
+
+            // Remove provider from extra.laravel.providers
             if (isset($composer['extra']['laravel']['providers'])) {
                 $providerClass = "Packages\\{$studly}\\Src\\App\\Providers\\AppServiceProvider";
                 $composer['extra']['laravel']['providers'] = array_values(array_filter(
@@ -64,10 +71,15 @@ class RemoveModuleCommand extends Command
                 $this->info("✅ Removed {$providerClass} from composer.json providers");
             }
 
+            // Write updated composer.json
             File::put(
                 $composerFile,
                 json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
             );
+
+            // Regenerate autoload files
+            exec('composer dump-autoload');
+            $this->info("🔹 Composer autoload regenerated");
         }
 
         // 4️⃣ Remove from vite.config.ts
@@ -85,8 +97,37 @@ class RemoveModuleCommand extends Command
             $this->info("✅ Removed {$lower} entry from vite.config.ts");
         }
 
+        $this->removePackageSeederCall($studly, $lower);
+
         $this->info("🎉 Module '{$studly}' has been fully removed!");
         $this->warn("⚠️ Run `composer dump-autoload` to refresh autoload files.");
         return 0;
+    }
+
+    protected function removePackageSeederCall(string $studly, string $lower): void
+    {
+        $seederFile = base_path('database/seeders/DatabaseSeeder.php');
+
+        if (!file_exists($seederFile)) {
+            $this->warn("Root DatabaseSeeder.php not found, skipping removing package seeder call.");
+            return;
+        }
+
+        $contents = file_get_contents($seederFile);
+
+        // The line to remove
+        $callLine = "        \$this->call(\\{$studly}\\Seeders\\DatabaseSeeder::class);";
+
+        if (!str_contains($contents, $callLine)) {
+            $this->info("Seeder call for {$studly} not found in DatabaseSeeder.php, nothing to remove.");
+            return;
+        }
+
+        // Remove the line
+        $contents = str_replace($callLine . "\n", '', $contents);
+
+        file_put_contents($seederFile, $contents);
+
+        $this->info("✅ Removed {$studly} package seeder call from DatabaseSeeder.php");
     }
 }
