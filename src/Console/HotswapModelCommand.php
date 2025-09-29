@@ -32,10 +32,43 @@ class HotswapModelCommand extends Command
 
         $this->moveFile($defaultModelPath, $targetModelPath);
 
-        // Fix namespace in the model file
+        // Fix namespace and add HasFactory + factory reference in the model file
         if (file_exists($targetModelPath)) {
             $contents = file_get_contents($targetModelPath);
-            $contents = str_replace("namespace App\\Models;", "namespace {$studlyPackage}\\App\\Models;", $contents);
+
+            // Change namespace
+            $contents = str_replace(
+                "namespace App\\Models;",
+                "namespace {$studlyPackage}\\App\\Models;",
+                $contents
+            );
+
+            // Add necessary imports
+            $imports = "use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;\nuse {$studlyPackage}\\Factories\\{$name}Factory;";
+            $contents = preg_replace('/namespace [^;]+;/', "namespace {$studlyPackage}\\App\\Models;\n\n{$imports}", $contents, 1);
+
+            // Add HasFactory trait if not present
+            if (!str_contains($contents, 'HasFactory')) {
+                $contents = preg_replace('/class ' . $name . ' extends Model/', "class {$name} extends Model\n{\n    use HasFactory;", $contents);
+            }
+
+            // Add newFactory method
+            $factoryMethod = <<<PHP
+
+    use HasFactory;
+
+    /**
+     * Tell Laravel where to find the factory for this model.
+     */
+    protected static function newFactory(): {$name}Factory
+    {
+        return {$name}Factory::new();
+    }
+PHP;
+
+            // Append the factory method before the last closing brace
+            $contents = preg_replace('/}\s*$/', $factoryMethod . "\n}", $contents);
+
             file_put_contents($targetModelPath, $contents);
         }
 
